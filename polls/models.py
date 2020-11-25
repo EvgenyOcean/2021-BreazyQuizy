@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.text import slugify
 from django.contrib.auth.models import User
 
 class QuestionVariant(models.TextChoices):
@@ -12,9 +13,14 @@ class Quiz(models.Model):
     desc = models.CharField(max_length=500)
     is_active = models.BooleanField()
     slug = models.SlugField(blank=True)
-    image = models.ImageField()
+    image = models.ImageField(null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     user = models.ManyToManyField(User, related_name='quizes', through='UserQuiz')
+
+    def save(self, *args, **kwargs):
+        slugified_title = slugify(self.title)
+        self.slug = slugified_title
+        super().save(*args, **kwargs)
 
     class Meta:
         ordering = ['date_created']
@@ -70,6 +76,9 @@ class TextAnswer(models.Model):
         return self.title
 
 class UserQuiz(models.Model):
+    '''
+    to store who takes what quiz and when that who started it
+    '''
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
