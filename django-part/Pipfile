@@ -10,6 +10,7 @@ django = "*"
 djangorestframework = "*"
 pillow = "*"
 django-nested-admin = "*"
+django-cors-headers = "*"
 
 [requires]
 python_version = "3.8"
