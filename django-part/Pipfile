@@ -11,6 +11,7 @@ djangorestframework = "*"
 pillow = "*"
 django-nested-admin = "*"
 django-cors-headers = "*"
+djangorestframework-simplejwt = "*"
 
 [requires]
 python_version = "3.8"

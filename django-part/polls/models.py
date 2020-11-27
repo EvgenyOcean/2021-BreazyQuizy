@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class QuestionVariant(models.TextChoices):
     SINGLE = "SS", "Single Selection",
@@ -15,7 +15,7 @@ class Quiz(models.Model):
     slug = models.SlugField(blank=True)
     image = models.ImageField(null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
-    user = models.ManyToManyField(User, related_name='quizes', through='UserQuiz')
+    user = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='quizes', through='UserQuiz')
 
     def save(self, *args, **kwargs):
         slugified_title = slugify(self.title)
@@ -79,7 +79,7 @@ class UserQuiz(models.Model):
     '''
     to store who takes what quiz and when that who started it
     '''
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     quiz = models.ForeignKey(Quiz, on_delete=models.CASCADE)
     is_completed = models.BooleanField(default=False)
     score = models.IntegerField(default=0)
