@@ -43,7 +43,7 @@ class Question(models.Model):
         ]
 
     def __str__(self):
-        return self.title
+        return f'{self.title}. id#{self.id}'
 
 
 class ChoiceAnswer(models.Model):
@@ -59,7 +59,7 @@ class ChoiceAnswer(models.Model):
             return "You can't create option for text-answer-required question!"
 
     def __str__(self):
-        return self.title
+        return f'{self.title}. id#{self.id}'
 
 class TextAnswer(models.Model):
     question = models.ForeignKey(Question, related_name="answers", on_delete=models.CASCADE)

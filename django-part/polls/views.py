@@ -37,6 +37,26 @@ class QuestionQuiz(GenericAPIView):
     queryset = Quiz.objects.all()
     lookup_field = 'slug'
 
+    def get_next_question(self, user_quiz):
+        # finding next question
+        answered_questions = QuizQuestionAnswer.objects.filter(user_quiz=user_quiz)
+        prev_question_order = answered_questions.aggregate(Max('question__order'))['question__order__max']
+        try:
+            next_question = user_quiz.quiz.questions.get(order=prev_question_order + 1)
+        except TypeError:
+            # user created quiz but never answered a single question
+            next_question = user_quiz.quiz.questions.get(order=0)
+        except Question.DoesNotExist:
+            # user answered the last question
+            results = QuizQuestionAnswerSerializer(answered_questions, many=True).data
+            score = reduce(lambda count, result: count+1 if result['users_answer']['is_correct'] else count, results, 0)
+            user_quiz.is_completed = True
+            user_quiz.date_finished = timezone.now()
+            user_quiz.score = score
+            user_quiz.save()
+            next_question = {"questions_info": results, "score": score}
+        return next_question
+
     def get(self, *args, **kwargs):
         user = self.request.user
         quiz = self.get_object()
@@ -53,20 +73,41 @@ class QuestionQuiz(GenericAPIView):
             # next question is the first one
             next_question = quiz.questions.get(order=0)
         else:
-            # finding next question 
-            answered_questions = QuizQuestionAnswer.objects.filter(user_quiz=user_quiz)
-            prev_question_order = answered_questions.aggregate(Max('question__order'))['question__order__max']
-            try:
-                next_question = quiz.questions.get(order=prev_question_order + 1)
-            except Question.DoesNotExist:
-                # user answered the last question
-                results = QuizQuestionAnswerSerializer(answered_questions, many=True).data
-                score = reduce(lambda count, result: count+1 if result['users_answer']['is_correct'] else count, results, 0)
-                user_quiz.is_completed = True
-                user_quiz.date_finished = timezone.now()
-                user_quiz.score = score
-                user_quiz.save()
-                return Response({"questions_info": results, "score": score}, status=status.HTTP_200_OK)
+            next_question = self.get_next_question(user_quiz)
+            if type(next_question) == dict:
+                return Response(next_question, status=status.HTTP_200_OK)
 
         next_question_s = QuestionSerializer(next_question)
         return Response(next_question_s.data, status=status.HTTP_200_OK)
+
+    def post(self, *args, **kwrags):
+        user = self.request.user
+        quiz = self.get_object()
+        user_quiz, created = UserQuiz.objects.get_or_create(user=user, quiz=quiz)
+        try:
+            question_id = self.request.data['question_id']
+            choice_id = self.request.data['choice_id']
+        except KeyError:
+            return Response({"error": "Question or Answer were not provided!"},
+                        status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            question = quiz.questions.get(id=question_id)
+            choice_answer = question.choices.get(id=choice_id)
+        except Exception:
+            return Response({"error": "This question or choice doesn't belog!"},
+                            status=status.HTTP_400_BAD_REQUEST)
+                            
+        if QuizQuestionAnswer.objects.filter(question=question, user_quiz=user_quiz).exists():
+            return Response({"error": "You have already answered this question!"})
+
+        QuizQuestionAnswer.objects.create(question=question, choice_answer=choice_answer, 
+                                        user_quiz=user_quiz)
+        next_question = self.get_next_question(user_quiz)
+        if type(next_question) == dict:
+            return Response(next_question, status=status.HTTP_200_OK)
+        next_question_s = QuestionSerializer(next_question)
+        
+
+        return Response(next_question_s.data, status=status.HTTP_201_CREATED)
+
