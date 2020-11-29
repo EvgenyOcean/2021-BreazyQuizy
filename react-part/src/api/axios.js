@@ -1,9 +1,15 @@
 import axios from 'axios';
 
+
+async function handleTokenRefresh(){
+  console.log('handling...');
+} 
+
+
 export const quizzesListAPI = async () => {
   let response;
   try{
-    response = await axios.get('quizzes/');
+    response = await axios.get('/api/quizzes/');
   } catch(err) {
     response = {"error": err.message};
   }
@@ -13,15 +19,39 @@ export const quizzesListAPI = async () => {
 
 export const quizDetailAPI = async (slug) => {
   let response;
+  let accessToken = localStorage.getItem('access');
   let instance = axios.create({
-    baseURL: '/quizzes/', // if you don't specify leading slash, it will add current url to the beginning
+    baseURL: '/api/quizzes/', 
+    headers: {'Authorization': accessToken ? 'Bearer ' +  accessToken : ''},
   });
   try{
-    response = await instance.get('/' + slug + '/'); // same here
+    response = await instance.get('/' + slug + '/');
   } catch(err){
+    if (err.response.status === 401){
+      await handleTokenRefresh();
+    }
+    console.log('error!');
     response = {"error": err.message, status: err.response.status};
   }
   return response;
+}
+
+
+export const RegisterAPI = async (data) => {
+  return await axios.post('/register/', data);
+}
+
+
+export const LoginAPI = async (data) => {
+  return await axios.post('/login/', data);
+}
+
+
+export const LogoutAPI = async () => {
+  const refresh = localStorage.getItem('refresh');
+  localStorage.removeItem('refresh');
+  localStorage.removeItem('access');
+  return await axios.post('/logout/', {refresh})
 }
 
 

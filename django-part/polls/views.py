@@ -108,6 +108,5 @@ class QuestionQuiz(GenericAPIView):
             return Response(next_question, status=status.HTTP_200_OK)
         next_question_s = QuestionSerializer(next_question)
         
-
         return Response(next_question_s.data, status=status.HTTP_201_CREATED)
 

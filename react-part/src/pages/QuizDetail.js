@@ -16,6 +16,9 @@ export const QuizDetail = (props) => {
         const r = await quizDetailAPI(quizSlug);
         if (r.status === 404){
           setQuiz({...quiz, loading: false, notFound: true});
+        } else if(r.status === 401){
+          console.log(r.error);
+          setQuiz({...quiz, loading: false, notFound: true});
         } else {
           let data = r.data;
           setQuiz({data, loading: false});

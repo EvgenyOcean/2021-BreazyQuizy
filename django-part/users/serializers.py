@@ -9,22 +9,24 @@ class UserRegisterSerializer(serializers.ModelSerializer):
     '''
     # overriding email to make sure it's unique
     email = serializers.EmailField(
-            required=True,
-            validators=[UniqueValidator(queryset=CustomUser.objects.all())]
-            )
+        required=True,
+        validators=[UniqueValidator(queryset=CustomUser.objects.all())]
+    )
     # overriding username to make sure its max_length 32
     # and it's also unique
     username = serializers.CharField(
-            max_length=32,
-            required=True,
-            validators=[UniqueValidator(queryset=CustomUser.objects.all())]
-            )
+        max_length=32,
+        required=True,
+        validators=[
+            UniqueValidator(queryset=CustomUser.objects.all())
+        ]
+    )
     # overriding password to make sure that's its mix_length is 8
-    # and write_only, so we don't get as an output
+    # and write_only, so we don't get it as an output
     password = serializers.CharField(min_length=8, write_only=True)
 
     def create(self, validated_data):
-        user = User.objects.create_user(validated_data['username'], validated_data['email'],
+        user = CustomUser.objects.create_user(validated_data['email'], validated_data['username'],
              validated_data['password'])
         return user
 
