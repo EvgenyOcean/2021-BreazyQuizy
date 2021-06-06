@@ -29,7 +29,7 @@ export const Login = () => {
             <Form.Group controlId="formBasicPassword">
               <Form.Label>Password</Form.Label>
               <Form.Control type="password" placeholder="Password" 
-                            required minLength="8" name="password" />
+                            required minLength="5" name="password" />
             </Form.Group>
             
             <Button variant="primary" type="submit">

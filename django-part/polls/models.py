@@ -2,17 +2,19 @@ from django.db import models
 from django.utils.text import slugify
 from django.conf import settings
 
+
 class QuestionVariant(models.TextChoices):
     SINGLE = "SS", "Single Selection",
     MULTIPLE = "MS", "Multiple Selection",
     TEXT = "T", "Text Answer",
+
 
 # Create your models here.
 class Quiz(models.Model):
     title = models.CharField(max_length=100)
     desc = models.CharField(max_length=500)
     is_active = models.BooleanField()
-    slug = models.SlugField(blank=True)
+    slug = models.SlugField(blank=True, unique=True)
     image = models.ImageField(null=True, blank=True)
     date_created = models.DateTimeField(auto_now_add=True)
     user = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='quizes', through='UserQuiz')
@@ -24,17 +26,17 @@ class Quiz(models.Model):
 
     class Meta:
         ordering = ['date_created']
-    
+
     def __str__(self):
         return self.title
-    
+
 
 class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     variant = models.CharField(choices=QuestionVariant.choices, max_length=2)
     order = models.IntegerField(default=0)
-    # only if vatiant is T
+    # only if variant is T
     correct_answer = models.TextField(blank=True)
 
     class Meta:
@@ -61,6 +63,7 @@ class ChoiceAnswer(models.Model):
     def __str__(self):
         return f'{self.title}. id#{self.id}'
 
+
 class TextAnswer(models.Model):
     question = models.ForeignKey(Question, related_name="answers", on_delete=models.CASCADE)
     title = models.TextField()
@@ -74,6 +77,7 @@ class TextAnswer(models.Model):
 
     def __str__(self):
         return self.title
+
 
 class UserQuiz(models.Model):
     '''

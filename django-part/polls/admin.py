@@ -22,6 +22,7 @@ class QuestionInline(nested_admin.NestedTabularInline):
 # this one will be the main wrapper wrapper
 class QuizAdmin(nested_admin.NestedModelAdmin):
     inlines = [QuestionInline]
+    exclude = ('slug',)
 
 
 #######################
