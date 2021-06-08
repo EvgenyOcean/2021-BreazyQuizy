@@ -17,11 +17,18 @@ from rest_framework.response import Response
 
 # Create your views here.
 class QuizzesList(ListCreateAPIView):
+    '''
+    Lists all the available quizzes
+    '''
     queryset = Quiz.objects.filter(is_active=True)
     serializer_class = QuizSerializer
 
 
 class QuizDetail(RetrieveUpdateDestroyAPIView):
+    '''
+    Displays quiz description, title, how many people took the quiz, average score
+    Allows a quiz author to update, delete his quiz
+    '''
     # TODO: author can update/delete the quize
     # TODO: display how many people took the quiz and etc...
     permission_classes = [IsAuthenticated]
@@ -37,110 +44,84 @@ class QuizResults(RetrieveAPIView):
 
     def get_object(self):
         # return UserQuiz
-        username = self.kwargs['username']
+        username = self.request.user.username
         user = get_object_or_404(CustomUser, username=username)
-
-        quiz_slug = self.kwargs['quiz_slug']
+        quiz_slug = self.kwargs['slug']
         quiz = get_object_or_404(Quiz, slug=quiz_slug)
-
         userquiz = get_object_or_404(UserQuiz, user=user, quiz=quiz)
 
         if userquiz.is_completed:
             return userquiz
         else:
-            raise NotFound('The user didn\'t take the quiz or hasn\'t finished it yet!')
+            raise NotFound('You haven\'t completed the quiz yet!')
 
 
-class QuestionQuiz(GenericAPIView):
+class QuizQuestion(GenericAPIView):
     ''' 
-    This one is responsible for starting the quiz 
-    And for fidning the next question the user needs to answer
+    Displays question, accepts answers
     '''
     permission_classes = [IsAuthenticated]
     serializer_class = QuizSerializer
     queryset = Quiz.objects.all()
     lookup_field = 'slug'
 
-    def get_next_question(self, user_quiz):
-        # finding next question
-        answered_questions = QuizQuestionAnswer.objects.filter(user_quiz=user_quiz)
-        prev_question_order = answered_questions.aggregate(Max('question__order'))['question__order__max']
-        print('order >> ', prev_question_order)
-        try:
-            next_question = user_quiz.quiz.questions.get(order=prev_question_order + 1)
-        except TypeError:
-            # user created quiz but never answered a single question
-            next_question = user_quiz.quiz.questions.get(order=0)
-        except Question.DoesNotExist:
-            user_quiz.is_completed = True
-            user_quiz.date_finished = timezone.now()
-            user_quiz.save()
-            next_question = {}
-
-        return next_question
-
     def get(self, *args, **kwargs):
         user = self.request.user
         quiz = self.get_object()
-
+        questions = quiz.questions
+        current_question = get_object_or_404(questions, order=kwargs['order'])
         user_quiz, created = UserQuiz.objects.get_or_create(user=user, quiz=quiz)
+        serializer = QuestionSerializer(current_question)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        if user_quiz.is_completed:
-            # TODO#2: display results
-            return Response({"message": "You have already finished this quiz"}, 
-                            status=status.HTTP_200_OK)
-
-        next_question = None
-        if created:
-            # next question is the first one
-            next_question = quiz.questions.get(order=0)
-        else:
-            next_question = self.get_next_question(user_quiz)
-            if type(next_question) == dict:
-                return Response(next_question, status=status.HTTP_200_OK)
-
-        next_question_s = QuestionSerializer(next_question)
-        return Response(next_question_s.data, status=status.HTTP_200_OK)
-
-    def post(self, *args, **kwrags):
+    def post(self, request, *args, **kwargs):
         user = self.request.user
         quiz = self.get_object()
+        questions = quiz.questions
         user_quiz, created = UserQuiz.objects.get_or_create(user=user, quiz=quiz)
+        if user_quiz.is_completed:
+            return Response({"message": "You have already finished this quiz"}, 
+                            status=status.HTTP_200_OK)
+        is_submitted = request.data.get('submitted')
+        if is_submitted:
+            score = 0
+            user_quiz.is_completed = True
+            user_quiz.date_finished = timezone.now()
+            serializer = UserQuizSerializer(user_quiz)
+            data = serializer.data
+            for question, answers in data['results'].items():
+                if set(answers['user_answers']) == set(answers['correct_answers']):
+                    score += 1
+            user_quiz.score = score
+            user_quiz.save()
+            return redirect(f'/api/quizzes/{kwargs["slug"]}/results/')
+
         try:
-            question_id = self.request.data['question_id']
-            question = quiz.questions.get(id=question_id)
-            if QuizQuestionAnswer.objects.filter(question=question, user_quiz=user_quiz).exists():
-                return Response({"error": "You have already answered this question!"})
+            question = quiz.questions.get(order=kwargs['order'])
+        except Question.DoesNotExist:
+            return Response({"message": "User answered the last question"}, status=status.HTTP_201_CREATED)
+
+        try:
+            qqa = QuizQuestionAnswer.objects.filter(question=question, user_quiz=user_quiz)
+            if qqa.exists():
+                qqa.delete()
 
             if question.variant == 'SS':
                 choice_id = self.request.data['choice_id']
                 choice_answer = question.choices.get(id=choice_id)
-                if choice_answer.is_correct:
-                    user_quiz.score = F('score') + 1
                 QuizQuestionAnswer.objects.create(question=question, choice_answer=choice_answer, 
                                                   user_quiz=user_quiz)
             elif question.variant == 'MS':
                 choices_ids = self.request.data['choices_ids']
-                print(choices_ids)
-                correct_answers = 0
                 for choice_id in choices_ids:
                     choice_answer = question.choices.get(id=choice_id)
-                    if choice_answer.is_correct:
-                        correct_answers += 1
                     QuizQuestionAnswer.objects.create(question=question, choice_answer=choice_answer, 
                                                       user_quiz=user_quiz)
-                if len(choices_ids) == correct_answers:
-                    user_quiz.score = F('score') + 1
-
             elif question.variant == 'T':
                 answer = self.request.data['answer']
-                if question.correct_answer.lower() == answer.lower():
-                    user_quiz.score = F('score') + 1
                 users_answer = TextAnswer.objects.create(question=question, title=answer)
                 QuizQuestionAnswer.objects.create(question=question, users_answer=users_answer, 
                                                   user_quiz=user_quiz)
-            user_quiz.save()
-            user_quiz.refresh_from_db()
         except KeyError:
             return Response({"error": "Question or Answer were not provided!"},
                         status=status.HTTP_400_BAD_REQUEST)
@@ -150,16 +131,5 @@ class QuestionQuiz(GenericAPIView):
         except Exception as exc:
             print(exc)
             return Response({"error": "Something went wrong!"})
-                            
-        next_question = self.get_next_question(user_quiz)
-        if type(next_question) == dict:
-            # TODO: user answered all the questions => redirect to result page
-            # OR display a 'submit' button when there's an option to change the
-            # answers
-            username = user.username
-            slug = quiz.slug
-            return redirect(f'/api/{username}/{slug}/results/')
-        next_question_s = QuestionSerializer(next_question)
-        
-        return Response(next_question_s.data, status=status.HTTP_201_CREATED)
-
+                                    
+        return Response(status=status.HTTP_201_CREATED)

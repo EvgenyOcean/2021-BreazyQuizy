@@ -19,18 +19,22 @@ class QuizSerializer(serializers.ModelSerializer):
 
     def get_user_quiz_status(self, obj):
         user = self.context['request'].user
-        user_quiz = UserQuiz.objects.filter(user=user, quiz=obj)
-        if user_quiz.exists():
-            if user_quiz[0].is_completed:
-                return 'COMPLETED'
+        if not user.is_anonymous:
+            user_quiz = UserQuiz.objects.filter(user=user, quiz=obj)
+            if user_quiz.exists():
+                if user_quiz[0].is_completed:
+                    return 'COMPLETED'
+                else:
+                    return 'STARTED'
             else:
-                return 'STARTED'
+                return 'NOT STARTED'
         else:
-            return 'NOT STARTED'
+            return ''
 
 
 class QuestionSerializer(serializers.ModelSerializer):
     choices = serializers.SerializerMethodField()
+    questions_number = serializers.SerializerMethodField
     quiz = serializers.ReadOnlyField(source='quiz.title')
 
     class Meta:
@@ -41,6 +45,9 @@ class QuestionSerializer(serializers.ModelSerializer):
         choices = obj.choices.all()
         choice_s = ChoiceSerializer(choices, many=True)
         return choice_s.data
+
+    def questions_number(self, obj):
+        return obj.quiz.questions.count()
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
