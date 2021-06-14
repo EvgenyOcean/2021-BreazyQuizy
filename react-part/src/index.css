@@ -5,7 +5,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: rgb(0, 172, 255);
+  background: #24284F;
 }
 
 code {
@@ -13,6 +13,132 @@ code {
     monospace;
 }
 
+.quiz-question{
+  display: flex;
+  max-width: 1200px;
+  margin: 2rem;
+  align-items: flex-start;
+  gap: 3rem;
+  margin: 2rem auto;
+  padding: 0 2rem;
+}
+
+.chat{
+  width: 300px;
+  min-height: 500px;
+  background: rgba(19, 13, 13, 0.47);
+  border-radius: 24px;
+}
+
+main{
+  flex: 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+main .questions-info{
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.664);
+}
+
+.questions-info .circle{
+  width: 21px;
+  height: 21px;
+  line-height: 20px;
+  border-radius: 50%;
+  text-align: center;
+  font-size: 14px;
+  border: 1px solid #58AAFB;
+  box-sizing: content-box;
+  cursor: pointer;
+}
+
+.circle.current{
+  border: 1px solid white;
+}
+
+.circle.answered{
+  color: #58AAFB;
+}
+
+main .question{
+  background: rgba(195, 179, 201, 0.2);
+  border-radius: 5px;
+  color: white;
+  padding: 1rem;
+}
+
+.question-title{
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.choice .circle{
+  border: 1px solid #FFFFFF;
+  width: 12px;
+  height: 12px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  position: relative;
+}
+
+.choice .inner-circle{
+  position: absolute;
+  top: calc(50% - 4px);
+  left: calc(50% - 4px);
+  border: 1px solid #FFFFFF;
+  width: 6px;
+  height: 6px;
+  box-sizing: content-box;
+  border-radius: 50%;
+}
+
+.choice .square{
+  border: 1px solid #FFFFFF;
+  width: 12px;
+  height: 12px;
+  box-sizing: content-box;
+  position: relative;
+  background-color: transparent;
+} 
+
+.question .choices{
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.question .choice{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  line-height: 15px;
+  font-size: 15px;
+  /* justify-content: space-between; */
+}
+
 .quiz-row{
   cursor: pointer;
+}
+
+.square-container{
+  display: flex;
+  gap: 1rem;
+  margin: 2rem auto;
+}
+
+.square{
+  width: 2rem;
+  text-align: center;
+  background-color: lightgrey;
+  border: 2px solid grey;
+}
+
+.header{
+  background: rgba(34, 25, 35, 0.32);
 }

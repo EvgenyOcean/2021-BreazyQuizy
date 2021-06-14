@@ -20,12 +20,12 @@ export const quizzesListAPI = async () => {
 export const quizDetailAPI = async (slug) => {
   let response;
   let accessToken = localStorage.getItem('access');
-  let instance = axios.create({
-    baseURL: '/api/quizzes/', 
-    headers: {'Authorization': accessToken ? 'Bearer ' +  accessToken : ''},
-  });
   try{
-    response = await instance.get('/' + slug + '/');
+    const headers = axios.defaults.headers;
+    if (accessToken){
+      headers['Authorization'] = 'Bearer ' +  accessToken;
+    }
+    response = await axios.get('/api/quizzes/' + slug + '/');
   } catch(err){
     if (err.response.status === 401){
       await handleTokenRefresh();
@@ -52,6 +52,22 @@ export const LogoutAPI = async () => {
   localStorage.removeItem('refresh');
   localStorage.removeItem('access');
   return await axios.post('/logout/', {refresh})
+}
+
+export const QuizQuestionAPI = async (slug, order) => {
+  let accessToken = localStorage.getItem('access');
+  let response;
+  try{
+    axios.defaults.headers['Authorization'] = accessToken ? 'Bearer ' +  accessToken : '';
+    response = await axios.get(`/api/quizzes/${slug}/${order}/`);
+  } catch(err){
+    if (err.response.status === 401){
+      await handleTokenRefresh();
+    }
+    console.log('error!');
+    response = {"error": err.message, status: err.response.status};
+  }
+  return response;
 }
 
 

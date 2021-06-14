@@ -4,7 +4,7 @@ import {Link} from 'react-router-dom';
 
 import { LogoutAPI } from '../api/axios';
 import { parseJwt } from '../utils';
-import { useLocation, Redirect, useHistory } from 'react-router-dom';
+import { useLocation, useHistory } from 'react-router-dom';
 import { useEffect } from 'react';
 
 export const Header = () => {
@@ -39,7 +39,7 @@ export const Header = () => {
   }
 
   return (
-    <Navbar bg="dark" variant="dark">
+    <Navbar variant="dark" className="header">
       <Link to="/" className="navbar-brand">BreathyQuizzy</Link>
       <Nav className="ml-auto">
         {isUserLoggedIn() ? 

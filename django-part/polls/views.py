@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from .serializers import QuizSerializer, QuestionSerializer, QuizQuestionAnswerSerializer, UserQuizSerializer
+from .serializers import QuizSerializer, QuestionSerializer, UserQuizSerializer
 from .models import Quiz, UserQuiz, QuizQuestionAnswer, Question, ChoiceAnswer, TextAnswer
 from users.models import CustomUser
 from rest_framework.response import Response
@@ -31,7 +31,7 @@ class QuizDetail(RetrieveUpdateDestroyAPIView):
     '''
     # TODO: author can update/delete the quize
     # TODO: display how many people took the quiz and etc...
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     queryset = Quiz.objects.all()
     serializer_class = QuizSerializer
     lookup_field = 'slug'
@@ -58,21 +58,25 @@ class QuizResults(RetrieveAPIView):
 
 class QuizQuestion(GenericAPIView):
     ''' 
-    Displays question, accepts answers
+    Starts the quiz, displays questions, accepts answers
     '''
     permission_classes = [IsAuthenticated]
     serializer_class = QuizSerializer
     queryset = Quiz.objects.all()
     lookup_field = 'slug'
 
-    def get(self, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         user = self.request.user
         quiz = self.get_object()
         questions = quiz.questions
-        current_question = get_object_or_404(questions, order=kwargs['order'])
-        user_quiz, created = UserQuiz.objects.get_or_create(user=user, quiz=quiz)
-        serializer = QuestionSerializer(current_question)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        current_question = questions.filter(order=kwargs['order'])
+        print(f'>>> {current_question}')
+        if current_question.exists():
+            user_quiz, created = UserQuiz.objects.get_or_create(user=user, quiz=quiz)
+            serializer = QuestionSerializer(current_question[0], context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response({"message": "User answered the last question"}, status=status.HTTP_200_OK) 
 
     def post(self, request, *args, **kwargs):
         user = self.request.user

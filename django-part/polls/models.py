@@ -35,17 +35,19 @@ class Question(models.Model):
     quiz = models.ForeignKey(Quiz, related_name='questions', on_delete=models.CASCADE)
     title = models.CharField(max_length=100)
     variant = models.CharField(choices=QuestionVariant.choices, max_length=2)
-    order = models.IntegerField(default=0)
+    order = models.PositiveIntegerField(default=1)
     # only if variant is T
     correct_answer = models.TextField(blank=True)
 
     class Meta:
         constraints = [
-            models.CheckConstraint(check=models.Q(variant__in=QuestionVariant.values), name="%(app_label)s_%(class)s_variant_valid")
+            models.CheckConstraint(check=models.Q(variant__in=QuestionVariant.values), name="%(app_label)s_%(class)s_variant_valid"),
+            models.CheckConstraint(check=models.Q(order__gte=1), name="%(app_label)s_%(class)s_proper_order"),
+            models.UniqueConstraint(fields=['order', 'quiz'], name="%(app_label)s_%(class)s_order_unique")
         ]
 
     def __str__(self):
-        return f'{self.title}. id#{self.id}'
+        return f'{self.title} | id#{self.id}'
 
 
 class ChoiceAnswer(models.Model):

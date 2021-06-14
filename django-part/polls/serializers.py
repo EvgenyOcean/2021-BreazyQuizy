@@ -1,26 +1,41 @@
 from rest_framework import serializers
+from django.db.models import Max
 from .models import Quiz, Question, ChoiceAnswer, QuizQuestionAnswer, UserQuiz
 
 
 class QuizSerializer(serializers.ModelSerializer):
-    number_of_questions = serializers.SerializerMethodField()
+    questions_info = serializers.SerializerMethodField()
     user_quiz_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Quiz
-        fields = ['id', 'title', 'desc', 'slug', 'date_created', 'is_active', 'number_of_questions', 'user_quiz_status']
+        fields = ['id', 'title', 'desc', 'slug', 'date_created', 'is_active', 'questions_info', 'user_quiz_status']
         read_only_fields = ['slug']
         extra_kwargs = {
             'is_active': {'write_only': True}
         }
 
-    def get_number_of_questions(self, obj):
-        return obj.questions.count()
+    def get_questions_info(self, obj):
+        result = {
+            'count': obj.questions.count()
+        }
+        user = self.context['request'].user
+        if not user.is_anonymous:
+            try:
+                user_quiz = UserQuiz.objects.get(user=user, quiz=obj)
+                qqas = user_quiz.quizquestionanswer_set.all()
+                if qqas.exists():
+                    last_answered_question = qqas.aggregate(last_answered_question=Max('question__order'))['last_answered_question']
+                    result['last_answered_question'] = last_answered_question
+            except UserQuiz.DoesNotExist:
+                return result
+        return result
 
     def get_user_quiz_status(self, obj):
         user = self.context['request'].user
         if not user.is_anonymous:
             user_quiz = UserQuiz.objects.filter(user=user, quiz=obj)
+            print(f'user quiz {user_quiz}')
             if user_quiz.exists():
                 if user_quiz[0].is_completed:
                     return 'COMPLETED'
@@ -34,20 +49,37 @@ class QuizSerializer(serializers.ModelSerializer):
 
 class QuestionSerializer(serializers.ModelSerializer):
     choices = serializers.SerializerMethodField()
-    questions_number = serializers.SerializerMethodField
+    questions_info = serializers.SerializerMethodField()
     quiz = serializers.ReadOnlyField(source='quiz.title')
 
     class Meta:
         model = Question
-        fields = ['id', 'quiz', 'title', 'variant', 'choices']
+        fields = ['id', 'quiz', 'title', 'variant', 'choices', 'questions_info']
     
     def get_choices(self, obj):
         choices = obj.choices.all()
         choice_s = ChoiceSerializer(choices, many=True)
         return choice_s.data
 
-    def questions_number(self, obj):
-        return obj.quiz.questions.count()
+    def get_questions_info(self, obj):
+        result = {}
+        print(f'context: {self.context}')
+        user = self.context['request'].user
+        questions_order = obj.quiz.questions.values_list('order')
+        user_quiz = UserQuiz.objects.get(quiz=obj.quiz, user=user)
+        answered_questions = user_quiz.quizquestionanswer_set.values_list('question__order').distinct()
+        result.update(questions_order=[i[0] for i in questions_order], answered_questions=[i[0] for i in answered_questions])
+
+        answer = [] # user's answer to this question
+        qqas = user_quiz.quizquestionanswer_set.filter(question=obj)
+        if obj.variant == 'T':
+            for qqa in qqas:
+                answer.append(qqa.users_answer.title)
+        else:
+            for qqa in qqas:
+                answer.append(qqa.choice_answer.title)
+        result['answer'] = answer
+        return result
 
 
 class ChoiceSerializer(serializers.ModelSerializer):
@@ -63,19 +95,6 @@ class QuizQuestionAnswerSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuizQuestionAnswer
         fields = ['question', 'users_answer']
-
-    def get_users_answer(self, obj):
-        question = obj.question
-        if question.variant == "SS" or question.variant == "MS":
-            users_answer = obj.choice_answer.title
-            is_correct = obj.choice_answer.is_correct
-
-            correct_answers = question.choices.filter(is_correct=True)
-
-            return {"users_answer": users_answer, "is_correct": is_correct, 
-                    "correct_answer": correct_answer}
-        elif question.variant == 'T':
-            question.correct_answer 
 
 
 class UserQuizSerializer(serializers.ModelSerializer):

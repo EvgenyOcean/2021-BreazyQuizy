@@ -4,6 +4,7 @@ import QuizDetail from './pages/QuizDetail';
 import QuizzesList from './pages/QuizzesList';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import QuizQuestion from './pages/QuizQuestion';
 
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
       <Switch>
         <Route exact path='/' component={QuizzesList}/>
         <Route exact path='/quizzes/:slug/' component={QuizDetail}/>
+        <Route exact path='/quizzes/:slug/:order/' component={QuizQuestion}/>
         <Route exact path='/login/' component={Login}/>
         <Route exact path='/register/' component={Register}/>
       </Switch>
