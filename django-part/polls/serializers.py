@@ -81,12 +81,41 @@ class QuestionSerializer(serializers.ModelSerializer):
         result['answer'] = answer
         return result
 
+class QuestionResultSerializer(serializers.ModelSerializer):
+    quiz = serializers.ReadOnlyField(source='quiz.title')
+    choices = serializers.SerializerMethodField()
+    user_answer = serializers.SerializerMethodField()
+    
+    def get_user_answer(self, obj):
+        user = self.context['request'].user
+        user_quiz = UserQuiz.objects.get(quiz=obj.quiz, user=user)
+
+        answer = [] # user's answer to this question
+        qqas = user_quiz.quizquestionanswer_set.filter(question=obj)
+        if obj.variant == 'T':
+            for qqa in qqas:
+                answer.append(qqa.users_answer.title)
+        else:
+            for qqa in qqas:
+                answer.append({qqa.choice_answer.title: qqa.choice_answer.id})
+        return answer
+
+    def get_choices(self, obj):
+        if obj.variant == 'T':
+            return obj.correct_answer
+        else:
+            return [{'id': choice.id, 'title': choice.title, 'is_correct': choice.is_correct} for choice in obj.choices.all()]
+
+    class Meta:
+        model = Question
+        fields = ['id', 'quiz', 'title', 'variant', 'choices', 'user_answer']
+
 
 class ChoiceSerializer(serializers.ModelSerializer):
+
     class Meta: 
         model = ChoiceAnswer
         fields = ['id', 'title']
-
 
 class QuizQuestionAnswerSerializer(serializers.ModelSerializer):
     question = serializers.ReadOnlyField(source='question.title')

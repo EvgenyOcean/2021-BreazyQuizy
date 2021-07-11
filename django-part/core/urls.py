@@ -10,4 +10,5 @@ urlpatterns = [
     path('logout/', users_view.BlacklistTokenUpdateView.as_view(), name='logout'),
     path('register/', users_view.UserCreate.as_view(), name="register"),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api-auth/', include('rest_framework.urls')),
 ]

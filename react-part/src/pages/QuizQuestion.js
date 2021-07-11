@@ -12,9 +12,12 @@ import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 
 import axios from "axios";
+import QuestionSS from "../components/QuestionSS";
 
 export default function QuizQuestion(props) {
+  // questionData is everything that server sends for this specific question
   const [questionData, setQuestionData] = useState({ loading: true });
+  // these states are storing users's answers
   const [choice, setChoice] = useState(null);
   const [choices, setChoices] = useState([]);
   const [answer, setAnswer] = useState("");
@@ -135,6 +138,12 @@ export default function QuizQuestion(props) {
               )
             })
             .catch(console.log);
+          // You need to redirect to result page
+
+          axios
+            .get(`/api/quizzes/${quizSlug}/results/`)
+            .then(console.log)
+            .catch(console.log)
         }
       })
       
@@ -163,24 +172,12 @@ export default function QuizQuestion(props) {
             </div>
           ))}
         </div>
-        <div className="question">
-          <h3 className="question-title">{questionData.title}</h3>
           {questionData.variant === "SS" ? (
-            <div className="choices">
-              {questionData.choices.map((c, inx) => (
-                <div
-                  key={c.id}
-                  className="choice"
-                  data-choice-id={c.id}
-                  onClick={(e) => handleChoiceClick(e.target)}
-                >
-                  <div className="circle">
-                    {c.id === choice && <div className="inner-circle"></div>}
-                  </div>
-                  <div className="choice-ss">{c.title}</div>
-                </div>
-              ))}
-            </div>
+            <QuestionSS 
+              question={questionData}
+              handleChoiceClick={handleChoiceClick}
+              choice={choice}
+            />
           ) : questionData.variant === "MS" ? (
             <QuestionMS
               question={questionData}
@@ -196,7 +193,6 @@ export default function QuizQuestion(props) {
           <Button variant="info" className="mt-4">
             Hint
           </Button>
-        </div>
         {Math.max(...qsInfo["questions_order"]) === +questionOrder ? (
           <Button variant="danger" onClick={handleFinishQuiz}>
             Finish

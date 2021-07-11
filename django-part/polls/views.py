@@ -4,12 +4,12 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Max, F
 
 from rest_framework.generics import (ListCreateAPIView, RetrieveUpdateDestroyAPIView,
-                                    GenericAPIView, RetrieveAPIView)
+                                    GenericAPIView, RetrieveAPIView, ListAPIView)
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from .serializers import QuizSerializer, QuestionSerializer, UserQuizSerializer
+from .serializers import QuizSerializer, QuestionSerializer, UserQuizSerializer, QuestionResultSerializer
 from .models import Quiz, UserQuiz, QuizQuestionAnswer, Question, ChoiceAnswer, TextAnswer
 from users.models import CustomUser
 from rest_framework.response import Response
@@ -37,21 +37,22 @@ class QuizDetail(RetrieveUpdateDestroyAPIView):
     lookup_field = 'slug'
 
 
-class QuizResults(RetrieveAPIView):
+class QuizResults(ListAPIView):
     permission_classes = [IsAuthenticated]
-    serializer_class = UserQuizSerializer
-    queryset = UserQuiz.objects.all()
+    serializer_class = QuestionResultSerializer
 
-    def get_object(self):
-        # return UserQuiz
+    def get_queryset(self):
         username = self.request.user.username
         user = get_object_or_404(CustomUser, username=username)
+
         quiz_slug = self.kwargs['slug']
         quiz = get_object_or_404(Quiz, slug=quiz_slug)
+
         userquiz = get_object_or_404(UserQuiz, user=user, quiz=quiz)
+        questions = quiz.questions.all()
 
         if userquiz.is_completed:
-            return userquiz
+            return questions
         else:
             raise NotFound('You haven\'t completed the quiz yet!')
 

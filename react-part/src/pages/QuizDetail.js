@@ -40,6 +40,8 @@ export const QuizDetail = (props) => {
       history.push('/quizzes/' + quizSlug + '/0/');
     } else if (action === 'continue'){
       history.push(`/quizzes/${quizSlug}/${(quiz.data['questions_info']['last_answered_question'] + 1) || 0}/`);
+    } else if (action === 'results'){
+      history.push(`/quizzes/${quizSlug}/results/`);
     }
   }
 

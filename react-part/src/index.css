@@ -106,10 +106,30 @@ main .question{
   background-color: transparent;
 } 
 
+.choice.correct{
+  background-color: #90ee9085;
+  padding: 0.5rem;
+}
+
+.choice.wrong{
+  background-color: #ee909085;
+  padding: 0.5rem;
+}
+
 .question .choices{
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.question .choices .textarea.correct{
+  background-color: #90ee9085;
+  padding: 0.5rem;
+}
+
+.question .choices .textarea.wrong{
+  background-color: #ee909085;
+  padding: 0.5rem;
 }
 
 .question .choice{
